@@ -14,6 +14,7 @@ import Divider from "@material-ui/core/Divider";
 import {  useDispatch } from 'react-redux'
 import { Redirect } from 'react-router-dom';
 import { logoutUser } from "../../actions/auth";
+import { useHistory } from 'react-router-dom'
 
 import Person from "@material-ui/icons/Person";
 // import Notifications from "@material-ui/icons/Notifications";
@@ -28,6 +29,7 @@ import styles from "../../assets/jss/material-dashboard-react/components/headerL
 const useStyles = makeStyles(styles);
 
 export default function AdminNavbarLinks() {
+  const history = useHistory();
   const classes = useStyles();
   const [openNotification, setOpenNotification] = React.useState(null);
   const [openProfile, setOpenProfile] = React.useState(null);
@@ -50,6 +52,9 @@ export default function AdminNavbarLinks() {
   };
   const handleCloseProfile = () => {
     setOpenProfile(null);
+  };
+  const openSettings = () => {
+    history.push('/admin/settings');
   };
   const dispatch = useDispatch();
 
@@ -132,7 +137,7 @@ export default function AdminNavbarLinks() {
                       onClick={handleCloseNotification}
                       className={classes.dropdownItem}
                     >
-                      Mike John responded to your email
+                      Mike John responded to your
                     </MenuItem>
                     <MenuItem
                       onClick={handleCloseNotification}
@@ -209,13 +214,13 @@ export default function AdminNavbarLinks() {
                     >
                       Profile
                     </MenuItem> */}
-                    <MenuItem
-                      onClick={handleCloseProfile}
+                    {/* <MenuItem
+                      onClick={openSettings}
                       className={classes.dropdownItem}
                     >
                       Settings
                     </MenuItem>
-                    <Divider light />
+                    <Divider light /> */}
                     <MenuItem
                       onClick={logout}
                       className={classes.dropdownItem}

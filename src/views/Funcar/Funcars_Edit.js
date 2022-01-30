@@ -25,6 +25,7 @@ import { getAllCountries, getCities, getDummyServices } from '../../actions/auth
 import DropDown from "../../components/DropdownRenderer"
 import { ConvertToCommaSplitArray, ProcessDataInArray } from "../../common/commonMethods"
 import ServicePricing from "../../components/ServicePricing"
+import CommissionRate from '../../components/CommissionRate/index';
 import GellaryLoader from "../../components/gellaryLoader"
 import AlertDialog from '../../components/Modals/AlertModal'
 
@@ -71,8 +72,10 @@ export default function FuncarEdit() {
     const FilesInput = React.createRef();
     const GalleryFilesInput = React.createRef();
     const Store = useSelector(state => state);
+    const user = useSelector(state => state.auth.user);
 
     // state
+    const [userData, setUserData] = useState();
     const [isImageChanged, setIsImageChanged] = useState(false);
     const [filteredSubCategoriesList, setFilteredSubCategoriesList] = useState([]);
     const [acheivementsInput, setAcheivementsInput] = useState("");
@@ -83,6 +86,7 @@ export default function FuncarEdit() {
     const [activeTab, setActiveTab] = useState('info_tab')
     const [pricingServices, setPricingServices] = useState([]);
     const [filteredPricingServices, setFilteredPricingServices] = useState([]);
+    const [currency, setCurrency] = useState()
 
     const [AlertModalProps, setAlertModalProps] = useState({
         open: false,
@@ -99,6 +103,8 @@ export default function FuncarEdit() {
         services: [],
         mngServices: [],
         averageRate: "",
+        excludes: "",
+        includes: "",
         firstName: "",
         lastName: "",
         professionalName: "",
@@ -114,7 +120,9 @@ export default function FuncarEdit() {
         processedServicePriceing: [],
         mainCategory: "",
         isPopular: null,
-        gallery: []
+        gallery: [],
+
+
 
     });
 
@@ -125,6 +133,7 @@ export default function FuncarEdit() {
             [fieldId]: e.currentTarget.value,
         })
     }
+
     const handleImageChange = (e) => {
         if (e.target.files.length > 0) {
             dispatch({ type: UPDATE_LOADING, payload: true });
@@ -148,7 +157,7 @@ export default function FuncarEdit() {
     }
     const handleGelleryInputChange = (e) => {
         if (e.target.files.length > 0) {
-            let element= e.target
+            let element = e.target
             let formData = new FormData();
             let ins = e.target.files.length;
             for (let x = 0; x < ins; x++) {
@@ -160,10 +169,10 @@ export default function FuncarEdit() {
                 dispatch({ type: UPDATE_LOADING, payload: false });
                 if (result.data.status === true) {
                     alert.success(APP_ERROR_MSGS.SaveMsg)
-                    if(result.data.data){
+                    if (result.data.data) {
                         loadData(result.data.data)
                     }
-                    else{
+                    else {
                         getUserDetails()
                     }
                 }
@@ -178,22 +187,22 @@ export default function FuncarEdit() {
         }
     }
     const validateForm = () => {
-        if (!FormInputs.gender) {
-            alert.error("Gender is required")
-            return false
-        }
-        if (!FormInputs.country) {
-            alert.error("Country is required")
-            return false
-        }
-        if (!FormInputs.city) {
-            alert.error("City is required")
-            return false
-        }
-        if (FormInputs.averageRate === 0) {
-            alert.error("Average rate is required")
-            return false
-        }
+        // if (!FormInputs.gender) {
+        //     alert.error("Gender is required")
+        //     return false
+        // }
+        // if (!FormInputs.country) {
+        //     alert.error("Country is required")
+        //     return false
+        // }
+        // if (!FormInputs.city) {
+        //     alert.error("City is required")
+        //     return false
+        // }
+        // if (FormInputs.averageRate === 0) {
+        //     alert.error("Average rate is required")
+        //     return false
+        // }
         if (!FormInputs.mainCategory) {
             alert.error("Main catagory is required")
             return false
@@ -206,10 +215,10 @@ export default function FuncarEdit() {
             alert.error("Categories max limit is 3")
             return false
         }
-        if (FormInputs.subCategories.length === 0) {
-            alert.error("Please select atleast one sub category")
-            return false
-        }
+        // if (FormInputs.subCategories.length === 0) {
+        //     alert.error("Please select atleast one sub category")
+        //     return false
+        // }
         if (FormInputs.subCategories.length > 3) {
             alert.error("Sub Categories max limit is 3")
             return false
@@ -222,17 +231,37 @@ export default function FuncarEdit() {
             alert.error("Please select atleast one MNG service")
             return false
         }
-        if (FormInputs.achievements.length === 0) {
-            alert.error("Please add atleast one achievement")
-            return false
+        let error = false;
+        if (filteredPricingServices.length) {
+            filteredPricingServices.forEach(item => {
+                if(item?.serviceType?.key == "Performance - Normal Rate Card" ||
+                item?.serviceType?.key == "Performance - Special Rate Card"
+              ) {
+                  for (let i = 0; i< item?.serviceDetails.length; i++) {
+                    let el = item?.serviceDetails[i];
+                    if(el?.price != 0 && el?.price < 5000) {
+                        alert.error("Price must be greater than 5000.");
+                        error =true;
+                        break;
+                    } 
+                  }
+              }
+            })
         }
+        if (error) {
+            return false;
+        }
+
+        // if (FormInputs.achievements.length === 0) {
+        //     alert.error("Please add atleast one achievement")
+        //     return false
+        // }
         return true
     }
     const handleFormSubmit = (e) => {
 
         e.preventDefault();
         if (!validateForm()) return
-
         let param = {
             averageRate: FormInputs.averageRate,
             firstName: FormInputs.firstName,
@@ -250,6 +279,8 @@ export default function FuncarEdit() {
             services: FormInputs.services,
             mngServices: FormInputs.mngServices,
             achievements: FormInputs.achievements,
+            includes: FormInputs.includes,
+            excludes: FormInputs.excludes,
             servicesPricing: filteredPricingServices,
             mainCategory: FormInputs.mainCategory,
             isPopular: FormInputs.isPopular,
@@ -268,20 +299,21 @@ export default function FuncarEdit() {
             dispatch({ type: UPDATE_LOADING, payload: false });
             alert.error(error?.response?.data?.error ? error?.response?.data?.error : APP_ERROR_MSGS.StandardErrorMsg)
         });
+
     }
     const filterSubCategories = (value) => {
         // filter list
         let allSubCategoriesList = Store.auth?.appConfigs?.data?.subCategories
-        let selectedCategories = ConvertToCommaSplitArray(value, "id")
+        let selectedCategories = ConvertToCommaSplitArray(value, "_id")
         let filteredList = allSubCategoriesList.filter(function (obj) {
             return selectedCategories.indexOf(obj.isBelongTo) > -1
         });
 
         // filter selected values
         let selected = FormInputs.subCategories
-        let filteredListIdArr = ConvertToCommaSplitArray(filteredList, "id")
+        let filteredListIdArr = ConvertToCommaSplitArray(filteredList, "_id")
         let filteredSelected = selected.filter(function (obj) {
-            return filteredListIdArr.indexOf(obj.id) > -1
+            return filteredListIdArr.indexOf(obj._id) > -1
         });
         setFilteredSubCategoriesList(filteredList)
         setFormInputs({ ...FormInputs, subCategories: filteredSelected })
@@ -299,18 +331,22 @@ export default function FuncarEdit() {
         if (value.length === 0) return setFilteredPricingServices([])
 
         // Filter dummy pricing array 
-        let selectedServices = ConvertToCommaSplitArray(value, "id")
+        let selectedServices = ConvertToCommaSplitArray(value, "_id")
         let filteredList = pricingServices.filter(function (obj) {
-            return selectedServices.indexOf(obj?.serviceType?.id) > -1
+            if (selectedServices.indexOf(obj?.serviceType?._id) > -1) {
+                return selectedServices.indexOf(obj?.serviceType?._id) > -1
+            } else {
+                return selectedServices.indexOf(obj?.serviceType?.isBelongTo) > -1
+            }
         });
 
         // Populate filtered dummy array
         let tempProcessed = FormInputs.processedServicePriceing
         for (let i in filteredList) {
-            if (tempProcessed[filteredList[i].serviceType?.id]) {
+            if (tempProcessed[filteredList[i].serviceType?._id]) {
                 for (let j in filteredList[i].serviceDetails) {
-                    if (tempProcessed[filteredList[i].serviceType?.id].processedPricing[filteredList[i].serviceDetails[j].serviceName?.id]) {
-                        filteredList[i].serviceDetails[j].price = tempProcessed[filteredList[i].serviceType?.id].processedPricing[filteredList[i].serviceDetails[j].serviceName?.id].price
+                    if (tempProcessed[filteredList[i].serviceType?._id].processedPricing[filteredList[i].serviceDetails[j].serviceName?._id]) {
+                        filteredList[i].serviceDetails[j].price = tempProcessed[filteredList[i].serviceType?._id].processedPricing[filteredList[i].serviceDetails[j].serviceName?._id].price
                     }
                 }
             }
@@ -348,16 +384,16 @@ export default function FuncarEdit() {
         setFormInputs({ ...FormInputs, achievements: arr })
     }
     const loadData = (data) => {
-        let { servicesPricing, categories, subCategories, achievements, services, mngServices, averageRate, firstName, lastName, professionalName, gender, country, city, bio, notes, email, phone, profileImage, mainCategory, isPopular, gallery } = data
-
+        let { includes, excludes, currency, servicesPricing, categories, subCategories, achievements, services, mngServices, averageRate, firstName, lastName, professionalName, gender, country, city, bio, notes, email, phone, profileImage, mainCategory, isPopular, gallery } = data
+        setCurrency(currency);
         let tempPricing = [...servicesPricing]
         let processedServicePriceing = []
         for (let i in tempPricing) {
             tempPricing[i].processedPricing = []
             for (let j in tempPricing[i].serviceDetails) {
-                tempPricing[i].processedPricing[tempPricing[i].serviceDetails[j].serviceName?.id] = tempPricing[i].serviceDetails[j]
+                tempPricing[i].processedPricing[tempPricing[i].serviceDetails[j].serviceName?._id] = tempPricing[i].serviceDetails[j]
             }
-            processedServicePriceing[tempPricing[i].serviceType?.id] = tempPricing[i]
+            processedServicePriceing[tempPricing[i].serviceType?._id] = tempPricing[i]
         }
 
         setFormInputs({
@@ -367,6 +403,8 @@ export default function FuncarEdit() {
             email,
             phone,
             profileImage,
+            includes,
+            excludes,
             categories,
             subCategories,
             achievements,
@@ -381,7 +419,7 @@ export default function FuncarEdit() {
             city,
             bio,
             notes,
-            mainCategory: mainCategory ? mainCategory?.id : "",
+            mainCategory: mainCategory ? mainCategory?._id : "",
             isPopular,
             gallery,
         })
@@ -427,6 +465,7 @@ export default function FuncarEdit() {
             dispatch({ type: UPDATE_LOADING, payload: false });
             if (result.data.status === true) {
                 loadData(result.data.data)
+                setUserData(result.data.data)
             }
             else {
                 console.log('else getUserDetails', result.data);
@@ -491,6 +530,30 @@ export default function FuncarEdit() {
         });
     }
 
+    const updateCommissionRates = (body) => {
+        if (body.serviceCharges.status == true) {
+            body.commissionRate.forEach(item => {
+                if ((parseInt(item.percentage) < 1 || parseInt(item.percentage) > 100))
+                    return alert.error("Percentage must be less than 100 and greater than 0")
+            })
+        }
+
+        dispatch({ type: UPDATE_LOADING, payload: true });
+        updateUser(Id, body).then(result => {
+            dispatch({ type: UPDATE_LOADING, payload: false });
+            if (result.data.status === true) {
+                alert.success(APP_ERROR_MSGS.SaveMsg)
+                getUserDetails()
+            }
+            else {
+                alert.error(result.data.message ? result.data.message : APP_ERROR_MSGS.StandardErrorMsg)
+            }
+        }).catch(error => {
+            dispatch({ type: UPDATE_LOADING, payload: false });
+            alert.error(error?.response?.data?.error ? error?.response?.data?.error : APP_ERROR_MSGS.StandardErrorMsg)
+        });
+    }
+
     useEffect(() => {
 
         window.addEventListener('keydown', function (event) {
@@ -529,9 +592,29 @@ export default function FuncarEdit() {
         filterServicePricing(FormInputs.services)
     }, [FormInputs.services]);
 
+    const goBack = () =>{
+        let redirectState = history.location.state?.backRedirection ? history.location.state?.backRedirection : null
+        if(redirectState){
+          history.push({
+            pathname: redirectState.redirectToURL,
+            search: redirectState.search,
+            state: { backRedirection: redirectState.data }
+          })
+        } else {
+          history.push({
+            pathname: "/admin/funncars",
+            state: { backRedirection: null }
+          })
+        }
+      }
+
     return (
         <>
             <AlertDialog  {...AlertModalProps} setOpen={((resp) => { setAlertModalProps({ ...AlertModalProps, open: resp }) })} />
+
+            <Button onClick={goBack} type="submit" color="primary">
+                Back
+            </Button>
 
             <ul className="nav nav-tabs">
                 <li onClick={() => setActiveTab('info_tab')} className={activeTab === "info_tab" ? "active" : ""}><a>Info</a></li>
@@ -547,7 +630,7 @@ export default function FuncarEdit() {
 
                                 <Card>
                                     <CardHeader color="primary">
-                                        <h4 className={classes.cardTitleWhite}>Edit Funncar</h4>
+                                        <h4 className={classes.cardTitleWhite}>Edit Celebrity</h4>
                                     </CardHeader>
                                     <CardBody>
 
@@ -569,13 +652,13 @@ export default function FuncarEdit() {
 
                                         <GridContainer>
 
-                                            <GridItem xs={12} sm={12} md={4}>
+                                            {user.isSuperAdmin &&<><GridItem xs={12} sm={12} md={4}>
                                                 <CustomInput labelText="Email" id="email" inputProps={{ type: "email", value: FormInputs.email, onChange: handleFormInputChange }} formControlProps={{ fullWidth: true, required: true }} />
                                             </GridItem>
 
                                             <GridItem xs={12} sm={12} md={4}>
                                                 <CustomInput labelText="Phone" id="phone" inputProps={{ type: "text", value: FormInputs.phone, onChange: handleFormInputChange }} formControlProps={{ fullWidth: true, required: true }} />
-                                            </GridItem>
+                                            </GridItem></>}
 
                                             <GridItem xs={12} sm={12} md={4} style={{ paddingTop: "20px" }}>
                                                 <DropDown
@@ -595,7 +678,7 @@ export default function FuncarEdit() {
                                                     AddNew={() => { }}
                                                     clearable={true}
                                                     placeholder="Select"
-                                                    inputLabel="Gender *"
+                                                    inputLabel="Gender"
                                                 />
                                             </GridItem>
 
@@ -624,7 +707,7 @@ export default function FuncarEdit() {
                                                     AddNew={() => { }}
                                                     clearable={true}
                                                     placeholder="Select"
-                                                    inputLabel="Country *"
+                                                    inputLabel="Country"
                                                 />
                                             </GridItem>
 
@@ -649,7 +732,7 @@ export default function FuncarEdit() {
                                                     AddNew={() => { }}
                                                     clearable={true}
                                                     placeholder="Select"
-                                                    inputLabel="City *"
+                                                    inputLabel="City"
                                                 />
                                             </GridItem>
                                         </GridContainer>
@@ -657,12 +740,12 @@ export default function FuncarEdit() {
                                         <GridContainer>
 
                                             <GridItem xs={12} sm={12} md={4}>
-                                                <CustomInput labelText="AVG Rate" id="averageRate" inputProps={{ type: "number", value: FormInputs.averageRate, onChange: handleFormInputChange }} formControlProps={{ fullWidth: true, required: true, }} />
+                                                <CustomInput labelText="Starting from" id="averageRate" inputProps={{ type: "number", value: FormInputs.averageRate, onChange: handleFormInputChange }} formControlProps={{ fullWidth: true, }} />
                                             </GridItem>
 
-                                            {(FormInputs.isPopular == true || FormInputs.isPopular == false) &&   <GridItem className="flex_end_checbox" xs={12} sm={12} md={4}>
+                                            {(FormInputs.isPopular == true || FormInputs.isPopular == false) && <GridItem className="flex_end_checbox" xs={12} sm={12} md={4}>
                                                 <label className="checkbox-container">Popular
-                                            <input type="checkbox" defaultChecked={FormInputs.isPopular == true ? true : false} onClick={() => setFormInputs({ ...FormInputs, isPopular: !FormInputs.isPopular })} />
+                                                    <input type="checkbox" defaultChecked={FormInputs.isPopular == true ? true : false} onClick={() => setFormInputs({ ...FormInputs, isPopular: !FormInputs.isPopular })} />
                                                     <span className="checkmark"></span>
                                                 </label>
                                             </GridItem>}
@@ -672,11 +755,17 @@ export default function FuncarEdit() {
                                         <GridContainer>
 
                                             <GridItem xs={12} sm={12} md={12}>
-                                                <CustomInput labelText="Bio" id="bio" formControlProps={{ fullWidth: true, required: true }} inputProps={{ multiline: true, rows: 5, value: FormInputs.bio, onChange: handleFormInputChange }} />
+                                                <CustomInput labelText="Bio" id="bio" formControlProps={{ fullWidth: true }} inputProps={{ multiline: true, rows: 5, value: FormInputs.bio, onChange: handleFormInputChange }} />
                                             </GridItem>
 
                                             <GridItem xs={12} sm={12} md={12}>
-                                                <CustomInput labelText="Notes" id="notes" formControlProps={{ fullWidth: true, required: true }} inputProps={{ multiline: true, rows: 5, value: FormInputs.notes, onChange: handleFormInputChange }} />
+                                                <CustomInput labelText="Notes" id="notes" formControlProps={{ fullWidth: true }} inputProps={{ multiline: true, rows: 5, value: FormInputs.notes, onChange: handleFormInputChange }} />
+                                            </GridItem>
+                                            <GridItem xs={12} sm={12} md={12}>
+                                                <CustomInput labelText="Includes" id="includes" formControlProps={{ fullWidth: true }} inputProps={{ multiline: true, rows: 5, value: FormInputs.includes, onChange: handleFormInputChange }} />
+                                            </GridItem>
+                                            <GridItem xs={12} sm={12} md={12}>
+                                                <CustomInput labelText="Excludes" id="excludes" formControlProps={{ fullWidth: true }} inputProps={{ multiline: true, rows: 5, value: FormInputs.excludes, onChange: handleFormInputChange }} />
                                             </GridItem>
 
                                         </GridContainer>
@@ -696,7 +785,7 @@ export default function FuncarEdit() {
                                                     loading={false}
                                                     searchBy="name"
                                                     labelField="name"
-                                                    valueField="id"
+                                                    valueField="_id"
                                                     AddNew={() => { }}
                                                     clearable={true}
                                                     placeholder="Select"
@@ -720,7 +809,7 @@ export default function FuncarEdit() {
                                                     loading={false}
                                                     searchBy="name"
                                                     labelField="name"
-                                                    valueField="id"
+                                                    valueField="_id"
                                                     AddNew={() => { }}
                                                     clearable={true}
                                                     placeholder="Select"
@@ -744,11 +833,11 @@ export default function FuncarEdit() {
                                                     loading={false}
                                                     searchBy="name"
                                                     labelField="name"
-                                                    valueField="id"
+                                                    valueField="_id"
                                                     AddNew={() => { }}
                                                     clearable={true}
                                                     placeholder="Select"
-                                                    inputLabel="Sub Categories *"
+                                                    inputLabel="Sub Categories"
                                                 />
                                             </GridItem>
                                         </GridContainer>
@@ -768,7 +857,7 @@ export default function FuncarEdit() {
                                                     loading={false}
                                                     searchBy="name"
                                                     labelField="name"
-                                                    valueField="id"
+                                                    valueField="_id"
                                                     AddNew={() => { }}
                                                     clearable={true}
                                                     placeholder="Select"
@@ -792,7 +881,7 @@ export default function FuncarEdit() {
                                                     loading={false}
                                                     searchBy="name"
                                                     labelField="name"
-                                                    valueField="id"
+                                                    valueField="_id"
                                                     AddNew={() => { }}
                                                     clearable={true}
                                                     placeholder="Select"
@@ -818,6 +907,7 @@ export default function FuncarEdit() {
                                             </GridItem>
                                         </GridContainer>
 
+
                                     </CardBody>
                                 </Card>
 
@@ -827,12 +917,13 @@ export default function FuncarEdit() {
                                         <h4 className={classes.cardTitleWhite}>Service Pricing</h4>
                                     </CardHeader>
                                     <CardBody>
-                                        <ServicePricing list={filteredPricingServices} onChange={handlePricingValChange} />
+                                        <ServicePricing list={filteredPricingServices} onChange={handlePricingValChange} currency={currency} />
                                     </CardBody>
                                     <CardFooter>
                                         <Button type="submit" color="primary">SAVE</Button>
                                     </CardFooter>
                                 </Card>
+
 
                             </form>
                         </GridItem>
@@ -846,6 +937,10 @@ export default function FuncarEdit() {
                                     <a className="ancher_link" onClick={() => FilesInput.current.click()}>Change</a>
                                 </CardBody>
                             </Card>
+                        </GridItem>
+
+                        <GridItem xs={12} sm={12} md={12}>
+                            <CommissionRate commissionRate={userData?.commissionRate} serviceCharges={userData?.serviceCharges} updateCommissionRates={updateCommissionRates} />
                         </GridItem>
                     </GridContainer>
                 </div>

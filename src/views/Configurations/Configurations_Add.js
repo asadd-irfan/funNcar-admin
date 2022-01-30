@@ -12,270 +12,465 @@ import CardHeader from "../../components/Card/CardHeader.js";
 import CardBody from "../../components/Card/CardBody.js";
 import CardFooter from "../../components/Card/CardFooter.js";
 import { UPDATE_LOADING } from "../../actions/types";
-import { useAlert } from 'react-alert'
-import { APP_ERROR_MSGS, BASE_URL } from '../../common/constants';
-import { useSelector, useDispatch } from 'react-redux'
-import { useHistory, useParams } from 'react-router-dom'
-import { saveConfig, loadAppConfigs, updateConfig, getConfigDetail } from '../../actions/auth';
-import DropDown from "../../components/DropdownRenderer"
-
+import { useAlert } from "react-alert";
+import { APP_ERROR_MSGS, BASE_URL } from "../../common/constants";
+import { useSelector, useDispatch } from "react-redux";
+import { useHistory, useParams } from "react-router-dom";
+import {
+  saveConfig,
+  loadAppConfigs,
+  updateConfig,
+  getConfigDetail,
+} from "../../actions/auth";
+import DropDown from "../../components/DropdownRenderer";
 
 const styles = {
-    cardCategoryWhite: {
-        "&,& a,& a:hover,& a:focus": {
-            color: "rgba(255,255,255,.62)",
-            margin: "0",
-            fontSize: "14px",
-            marginTop: "0",
-            marginBottom: "0"
-        },
-        "& a,& a:hover,& a:focus": {
-            color: "#FFFFFF"
-        }
+  cardCategoryWhite: {
+    "&,& a,& a:hover,& a:focus": {
+      color: "rgba(255,255,255,.62)",
+      margin: "0",
+      fontSize: "14px",
+      marginTop: "0",
+      marginBottom: "0",
     },
-    cardTitleWhite: {
-        color: "#FFFFFF",
-        marginTop: "0px",
-        minHeight: "auto",
-        fontWeight: "300",
-        fontFamily: "'Roboto', 'Helvetica', 'Arial', sans-serif",
-        marginBottom: "3px",
-        textDecoration: "none",
-        "& small": {
-            color: "#777",
-            fontSize: "65%",
-            fontWeight: "400",
-            lineHeight: "1"
-        }
-    }
+    "& a,& a:hover,& a:focus": {
+      color: "#FFFFFF",
+    },
+  },
+  cardTitleWhite: {
+    color: "#FFFFFF",
+    marginTop: "0px",
+    minHeight: "auto",
+    fontWeight: "300",
+    fontFamily: "'Roboto', 'Helvetica', 'Arial', sans-serif",
+    marginBottom: "3px",
+    textDecoration: "none",
+    "& small": {
+      color: "#777",
+      fontSize: "65%",
+      fontWeight: "400",
+      lineHeight: "1",
+    },
+  },
 };
 const useStyles = makeStyles(styles);
 
 export default function ConfigurationsAdd() {
-    const FilesInput = React.createRef();
+  const FilesInput = React.createRef();
 
-    // Hooks
-    const classes = useStyles();
-    const alert = useAlert();
-    const dispatch = useDispatch();
-    const { Id } = useParams();
-    const history = useHistory();
+  // Hooks
+  const classes = useStyles();
+  const alert = useAlert();
+  const dispatch = useDispatch();
+  const { Id } = useParams();
+  const history = useHistory();
 
-    const categoriesList = useSelector(state => state.auth.appConfigs.data.categories);
-    const appConfigs = useSelector(state => state.auth.appConfigs);
-    const ConfigurationTypes = Object.keys(appConfigs.data);
+  const categoriesList = useSelector(
+    (state) => state.auth.appConfigs.data.categories
+  );
+  const appConfigs = useSelector((state) => state.auth.appConfigs);
+  const ConfigurationTypes = Object.keys(appConfigs.data);
 
-    // state
-    const [formData, setFormDate] = useState(null);
-    const [isImageChanged, setIsImageChanged] = useState('');
-    const [FormInputs, setFormInputs] = useState({
-        name: "",
-        file: "",
-        type: localStorage.getItem('config'),
-        isBelongTo: "",
+  // state
+  const [formData, setFormDate] = useState(null);
+  const [isImageChanged, setIsImageChanged] = useState("");
+  const [FormInputs, setFormInputs] = useState({
+    name: "",
+    file: "",
+    type: localStorage.getItem("config"),
+    isBelongTo: "",
+    isCelebrity: (!Id && localStorage.getItem("config") == 'categories') ? false : null,
+    isPerformer: (!Id && localStorage.getItem("config") == 'categories') ? false : null,
+  });
+
+  const handleFormInputChange = (e) => {
+    const fieldId = e.currentTarget.id;
+    setFormInputs({
+      ...FormInputs,
+      [fieldId]: e.currentTarget.value,
+      ...(fieldId == 'type' && {isCelebrity: false}),
+      ...(fieldId == 'type' && {isPerformer: false}),
     });
-    // console.log(formData);
-    const handleFormInputChange = (e) => {
-        const fieldId = e.currentTarget.id
-        setFormInputs({
+  };
+  const HandleAutoSuggestValChange = (fieldId, value) => {
+    setFormInputs({ ...FormInputs, [fieldId]: value });
+  };
+  const saveConfiguration = (param) => {
+    let body;
+    dispatch({ type: UPDATE_LOADING, payload: true });
+    if (param.type == "categories" && isImageChanged) {
+      let newFormData = formData;
+      newFormData.append("name", param.name);
+      newFormData.append("type", param.type);
+      newFormData.append("isCelebrity", param.isCelebrity);
+      newFormData.append("isPerformer", param.isPerformer);
+      body = newFormData;
+    } else {
+      body = param;
+    }
+    saveConfig(body)
+      .then((result) => {
+        dispatch({ type: UPDATE_LOADING, payload: false });
+        if (result.data.status === true) {
+          dispatch(loadAppConfigs());
+          alert.success(APP_ERROR_MSGS.SaveMsg);
+          setFormInputs({
             ...FormInputs,
-            [fieldId]: e.currentTarget.value,
-        })
-    }
-    const HandleAutoSuggestValChange = (fieldId, value) => {
-        setFormInputs({ ...FormInputs, [fieldId]: value })
-    }
-    const saveConfiguration = (param) => {
-        let body;
-        dispatch({ type: UPDATE_LOADING, payload: true });
-        if (param.type == 'categories' && isImageChanged) {
-            let newFormData = formData;
-            newFormData.append("name", param.name);
-            newFormData.append("type", param.type);
-            body = newFormData
-        }else {
-            body = param
-        }
-        saveConfig(body).then(result => {
-            dispatch({ type: UPDATE_LOADING, payload: false });
-            if (result.data.status === true) {
-                dispatch(loadAppConfigs());
-                alert.success(APP_ERROR_MSGS.SaveMsg)
-                setFormInputs({
-                    ...FormInputs,
-                    name: "",
-                    type: localStorage.getItem('config'),
-                    file: "",
-                    isBelongTo: "",
-                })
-                setIsImageChanged('')
-                setFormDate(null)
-            }
-            else {
-                alert.error(result.data.message ? result.data.message : APP_ERROR_MSGS.StandardErrorMsg)
-            }
-        }).catch(error => {
-            dispatch({ type: UPDATE_LOADING, payload: false });
-            alert.error(error?.response?.data?.error ? error?.response?.data?.error : APP_ERROR_MSGS.StandardErrorMsg)
-        });
-    }
-    const updateConfiguration=(param)=>{
-        let body;
-        dispatch({ type: UPDATE_LOADING, payload: true });
-        if (param.type == 'categories' && isImageChanged) {
-            let newFormData = formData;
-            newFormData.append("name", param.name);
-            newFormData.append("type", param.type);
-            body = newFormData
+            name: "",
+            type: localStorage.getItem("config"),
+            file: "",
+            isBelongTo: "",
+            isCelebrity: false,
+            isPerformer: false,
+          });
+          setIsImageChanged("");
+          setFormDate(null);
         } else {
-            body = param
+          alert.error(
+            result.data.message
+              ? result.data.message
+              : APP_ERROR_MSGS.StandardErrorMsg
+          );
         }
-        updateConfig(Id,body).then(result => {
-            dispatch({ type: UPDATE_LOADING, payload: false });
-            if (result.data.status === true) {
-                dispatch(loadAppConfigs());
-                alert.success(APP_ERROR_MSGS.SaveMsg)
-            }
-            else {
-                alert.error(result.data.message ? result.data.message : APP_ERROR_MSGS.StandardErrorMsg)
-            }
-        }).catch(error => {
-            dispatch({ type: UPDATE_LOADING, payload: false });
-            alert.error(error?.response?.data?.error ? error?.response?.data?.error : APP_ERROR_MSGS.StandardErrorMsg)
+      })
+      .catch((error) => {
+        dispatch({ type: UPDATE_LOADING, payload: false });
+        alert.error(
+          error?.response?.data?.error
+            ? error?.response?.data?.error
+            : APP_ERROR_MSGS.StandardErrorMsg
+        );
+      });
+  };
+  const updateConfiguration = (param) => {
+    let body;
+    dispatch({ type: UPDATE_LOADING, payload: true });
+    if (param.type == "categories" && isImageChanged) {
+      let newFormData = formData;
+      newFormData.append("name", param.name);
+      newFormData.append("type", param.type);
+      newFormData.append("isCelebrity", param.isCelebrity);
+      newFormData.append("isPerformer", param.isPerformer);
+      body = newFormData;
+    } else {
+      body = param;
+    }
+    updateConfig(Id, body)
+      .then((result) => {
+        dispatch({ type: UPDATE_LOADING, payload: false });
+        if (result.data.status === true) {
+          dispatch(loadAppConfigs());
+          getConfig()
+          alert.success(APP_ERROR_MSGS.SaveMsg);
+        } else {
+          alert.error(
+            result.data.message
+              ? result.data.message
+              : APP_ERROR_MSGS.StandardErrorMsg
+          );
+        }
+      })
+      .catch((error) => {
+        dispatch({ type: UPDATE_LOADING, payload: false });
+        alert.error(
+          error?.response?.data?.error
+            ? error?.response?.data?.error
+            : APP_ERROR_MSGS.StandardErrorMsg
+        );
+      });
+  };
+  const handleFormSubmit = (e) => {
+    e.preventDefault();
+    if (FormInputs.type === "subCategories" && !FormInputs.isBelongTo)
+      return alert.error("Category is required");
+    let param = {
+      name: FormInputs.name,
+      type: FormInputs.type,
+    };
+    if (FormInputs.type === "subCategories") {
+      param.isBelongTo = FormInputs.isBelongTo;
+    }
+    if (FormInputs.type === "categories") {
+      param.isCelebrity = FormInputs.isCelebrity;
+      param.isPerformer = FormInputs.isPerformer;
+    }
+    if (Id) {
+      updateConfiguration(param);
+    } else {
+      saveConfiguration(param);
+    }
+  };
+
+  useEffect(() => {
+    if (Id) {
+      getConfig()
+    }
+  }, []);
+
+  const getConfig = () => {
+      dispatch({ type: UPDATE_LOADING, payload: true });
+      getConfigDetail(Id)
+        .then((result) => {
+          dispatch({ type: UPDATE_LOADING, payload: false });
+          if (result.data.status === true) {
+            const { name, type, isBelongTo, file, isPerformer, isCelebrity } = result.data.data;
+            setFormInputs({
+              ...FormInputs,
+              name,
+              type,
+              file,
+              isCelebrity: isCelebrity,
+              isPerformer: isPerformer,
+              isBelongTo: isBelongTo ? isBelongTo : "",
+            });
+          } else {
+            alert.error(
+              result.data.message
+                ? result.data.message
+                : APP_ERROR_MSGS.StandardErrorMsg
+            );
+          }
+        })
+        .catch((error) => {
+          dispatch({ type: UPDATE_LOADING, payload: false });
+          alert.error(
+            error?.response?.data?.error
+              ? error?.response?.data?.error
+              : APP_ERROR_MSGS.StandardErrorMsg
+          );
+          if (error?.response?.status === 404)
+            history.push("/admin/configurations");
         });
     }
-    const handleFormSubmit = (e) => {
-        e.preventDefault();
-        if (FormInputs.type === "subCategories" && !FormInputs.isBelongTo) return alert.error("Category is required")
-        let param = {
-            name: FormInputs.name,
-            type: FormInputs.type,
-        }
-        if (FormInputs.type === "subCategories") {
-            param.isBelongTo = FormInputs.isBelongTo
-        }
-        if (Id) {
-            updateConfiguration(param)
-        }
-        else {
-            saveConfiguration(param)
-        }
+
+  const handleImageChange = (e) => {
+    if (e.target.files.length > 0) {
+      let formData = new FormData();
+      formData.append("file", e.target.files[0]);
+      setFormDate(formData);
+      setIsImageChanged(URL.createObjectURL(e.target.files[0]));
     }
+  };
 
-    useEffect(() => {
-        if (Id) {
-            dispatch({ type: UPDATE_LOADING, payload: true });
-            getConfigDetail(Id).then(result => {
-                dispatch({ type: UPDATE_LOADING, payload: false });
-                if (result.data.status === true) {
-                    let { name, type, isBelongTo, file  } = result.data.data
-                    setFormInputs({
-                        ...FormInputs,
-                        name, type, file,
-                        isBelongTo : isBelongTo ? isBelongTo : ""
-                    })
-                }
-                else {
-                    alert.error(result.data.message ? result.data.message : APP_ERROR_MSGS.StandardErrorMsg)
-                }
-            }).catch(error => {
-                dispatch({ type: UPDATE_LOADING, payload: false });
-                alert.error(error?.response?.data?.error ? error?.response?.data?.error : APP_ERROR_MSGS.StandardErrorMsg)
-                if (error?.response?.status === 404)
-                    history.push("/admin/configurations")
-            });
-        }
-    }, []);
-
-    const handleImageChange = (e) => {
-        if (e.target.files.length > 0) {
-            let formData = new FormData();
-            formData.append("file", e.target.files[0]);
-            setFormDate(formData);
-            setIsImageChanged(URL.createObjectURL(e.target.files[0]));
-
-            // console.log(e.target.files[0]);
-        }
+  const goBack = () => {
+    let redirectState = history.location.state?.backRedirection
+      ? history.location.state?.backRedirection
+      : null;
+    if (redirectState) {
+      history.push({
+        pathname: redirectState.redirectToURL,
+        search: redirectState.search,
+        state: { backRedirection: redirectState.data },
+      });
+    } else {
+      history.push({
+        pathname: "/admin/configurations",
+        state: { backRedirection: null },
+      });
     }
+  };
 
-    return (
-        <div>
-            <GridContainer>
-                <GridItem xs={12} sm={12} md={8}>
-                    <Card>
+  return (
+    <div>
+      <GridContainer>
+        <GridItem xs={12} sm={12} md={8}>
+          <Button onClick={goBack} type="submit" color="primary">
+            Back
+          </Button>
+          <Card>
+            <CardHeader color="primary">
+              <h4 className={classes.cardTitleWhite}>
+                {Id ? "Edit Configuration" : "Add Configuration"}
+              </h4>
+            </CardHeader>
 
-                        <CardHeader color="primary">
-                            <h4 className={classes.cardTitleWhite}>{Id ? "Edit Configuration" : "Add Configuration"}</h4>
-                        </CardHeader>
+            <form
+              onSubmit={handleFormSubmit}
+              className={classes.root}
+              autoComplete="off"
+            >
+              <CardBody>
+                <GridContainer>
+                  <GridItem xs={12} sm={12} md={6}>
+                    <CustomInput
+                      labelText="Name"
+                      id="name"
+                      inputProps={{
+                        type: "text",
+                        value: FormInputs.name,
+                        onChange: handleFormInputChange,
+                      }}
+                      formControlProps={{ fullWidth: true, required: true }}
+                    />
+                  </GridItem>
 
-                        <form onSubmit={handleFormSubmit} className={classes.root} autoComplete="off">
-                            <CardBody>
-                                <GridContainer>
+                  <GridItem xs={12} sm={12} md={6}>
+                    <label style={{ marginTop: "25px" }}>Type *</label>
+                    <select
+                      disabled={Id ? true : false}
+                      className="singleline-input"
+                      required
+                      id="type"
+                      onChange={handleFormInputChange}
+                      value={FormInputs.type}
+                    >
+                      {ConfigurationTypes.map((item, i) => {
+                        return (
+                          <option value={item} key={i}>
+                            {item}
+                          </option>
+                        );
+                      })}
+                    </select>
+                  </GridItem>
 
-                                    <GridItem xs={12} sm={12} md={6}>
-                                        <CustomInput labelText="Name" id="name" inputProps={{ type: "text", value: FormInputs.name, onChange: handleFormInputChange }} formControlProps={{ fullWidth: true, required: true, }} />
-                                    </GridItem>
+                  {FormInputs.type === "subCategories" && (
+                    <GridItem className="mt-20" xs={12} sm={12} md={12}>
+                      <DropDown
+                        multi={false}
+                        dropdownRenderer={false}
+                        contentRenderer={false}
+                        closeOnSelect={false}
+                        create={false}
+                        onChange={HandleAutoSuggestValChange}
+                        Type="isBelongTo"
+                        options={categoriesList}
+                        val={FormInputs.isBelongTo}
+                        loading={false}
+                        searchBy="name"
+                        labelField="name"
+                        valueField="id"
+                        AddNew={() => {}}
+                        clearable={true}
+                        placeholder="Select"
+                        inputLabel="Category *"
+                        disabled={Id ? true : false}
+                      />
+                    </GridItem>
+                  )}
 
-                                    <GridItem xs={12} sm={12} md={6}>
-                                        <label style={{ marginTop: "25px" }}>Type *</label>
-                                        <select disabled={Id ? true : false} className="singleline-input" required id="type" onChange={handleFormInputChange} value={FormInputs.type}>
-                                            {ConfigurationTypes.map((item, i) => {
-                                                return (
-                                                    <option value={item} key={i}>{item}</option>
-                                                )
-                                            })}
-                                        </select>
-                                    </GridItem>
+                  {FormInputs.type === "categories" && (FormInputs.isCelebrity != null || FormInputs.isPerformer != null) && (
+                    <GridItem className="mt-20" xs={12} sm={12} md={12}>
+                      <label className="checkbox-container">
+                        Celebrity
+                        <input
+                          type="checkbox"
+                          defaultChecked={
+                            FormInputs.isCelebrity == true ? true : false
+                          }
+                          onClick={() =>
+                            setFormInputs({
+                              ...FormInputs,
+                              isCelebrity: !FormInputs.isCelebrity,
+                            })
+                          }
+                        />
+                        <span className="checkmark"></span>
+                      </label>
 
-                                    {
-                                        FormInputs.type === "subCategories" &&
-                                        <GridItem className="mt-20" xs={12} sm={12} md={12}>
-                                            <DropDown
-                                                multi={false}
-                                                dropdownRenderer={false}
-                                                contentRenderer={false}
-                                                closeOnSelect={false}
-                                                create={false}
-                                                onChange={HandleAutoSuggestValChange}
-                                                Type="isBelongTo"
-                                                options={categoriesList}
-                                                val={FormInputs.isBelongTo}
-                                                loading={false}
-                                                searchBy="name"
-                                                labelField="name"
-                                                valueField="id"
-                                                AddNew={() => { }}
-                                                clearable={true}
-                                                placeholder="Select"
-                                                inputLabel="Category *"
-                                                disabled={Id ? true : false}
-                                            />
-                                        </GridItem>
-                                    }
+                      <label className="checkbox-container">
+                        Performer
+                        <input
+                          type="checkbox"
+                          defaultChecked={
+                            FormInputs.isPerformer == true ? true : false
+                          }
+                          onClick={() =>
+                            setFormInputs({
+                              ...FormInputs,
+                              isPerformer: !FormInputs.isPerformer,
+                            })
+                          }
+                        />
+                        <span className="checkmark"></span>
+                      </label>
 
-                                </GridContainer>
-                            </CardBody>
-                            <CardFooter>
-                                <Button type="submit" color="primary">SAVE</Button>
-                            </CardFooter>
-                        </form>
-                    </Card>
-                </GridItem>
-                {FormInputs.type == 'categories' ? <GridItem xs={12} sm={12} md={4}>
-                            <Card profile>
-                                    <img src={(!Id && !isImageChanged) ?  require('../../assets/img/placeholder.jpeg') : isImageChanged ? isImageChanged : FormInputs.file ? `${BASE_URL}/${FormInputs.file}` : '' } />
-                                    {/* <img src={isImageChanged ? isImageChanged : require('../../assets/img/placeholder.jpeg')} /> */}
-                                <CardBody profile>
-                                    <input type="file" name="myImage" hidden accept="image/*" 
-                                    onChange={handleImageChange} ref={FilesInput} 
-                                    />
-                                    <a className="ancher_link" 
-                                    onClick={() => FilesInput.current.click()}
-                                    > {Id ? 'Change' : "Upload"}</a>
-                                </CardBody>
-                            </Card>
-                        </GridItem> : <> </>}
-            </GridContainer>
-        </div>
-    );
+                      {/* <label class="custome-radio-container">
+                        Celebrity
+                        <input
+                          type="radio"
+                          name="CategoryType_Radio"
+                          checked={
+                            FormInputs.isCelebrity === true ? true : false
+                          }
+                          onClick={() => {
+                            setFormInputs({
+                              ...FormInputs,
+                              isCelebrity: true,
+                              isPerformer: false,
+                            });
+                          }}
+                        />
+                        <span class="checkmark"></span>
+                      </label> */}
+                      {/* <label class="custome-radio-container">
+                        Performance
+                        <input
+                          type="radio"
+                          name="CategoryType_Radio"
+                          checked={
+                            FormInputs.isPerformer === true ? true : false
+                          }
+                          onClick={() => {
+                            setFormInputs({
+                              ...FormInputs,
+                              isCelebrity: false,
+                              isPerformer: true,
+                            });
+                          }}
+                        />
+                        <span class="checkmark"></span>
+                      </label> */}
+                    </GridItem>
+                  )}
+                </GridContainer>
+              </CardBody>
+              <CardFooter>
+                <Button type="submit" color="primary">
+                  SAVE
+                </Button>
+              </CardFooter>
+            </form>
+          </Card>
+        </GridItem>
+        {FormInputs.type == "categories" ? (
+          <GridItem xs={12} sm={12} md={4}>
+            <Card profile>
+              <img
+                src={
+                  !Id && !isImageChanged
+                    ? require("../../assets/img/placeholder.jpeg")
+                    : isImageChanged
+                    ? isImageChanged
+                    : FormInputs.file
+                    ? `${BASE_URL}/${FormInputs.file}`
+                    : ""
+                }
+              />
+              {/* <img src={isImageChanged ? isImageChanged : require('../../assets/img/placeholder.jpeg')} /> */}
+              <CardBody profile>
+                <input
+                  type="file"
+                  name="myImage"
+                  hidden
+                  accept="image/*"
+                  onChange={handleImageChange}
+                  ref={FilesInput}
+                />
+                <a
+                  className="ancher_link"
+                  onClick={() => FilesInput.current.click()}
+                >
+                  {" "}
+                  {Id ? "Change" : "Upload"}
+                </a>
+              </CardBody>
+            </Card>
+          </GridItem>
+        ) : (
+          <> </>
+        )}
+      </GridContainer>
+    </div>
+  );
 }

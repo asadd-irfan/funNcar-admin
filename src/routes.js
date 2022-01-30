@@ -21,10 +21,23 @@ import ConfigurationsList from "./views/Configurations/Configurations_List.js";
 import ConfigurationsAdd from "./views/Configurations/Configurations_Add.js";
 import BookingsList from "./views/bookings/bookingsList";
 import Booking_View from "./views/bookings/booking_View";
+import DisputeBookingsList from "./views/bookings/disputeBookingsList";
+import SendBookingPayment from "./views/bookings/sendBookingPayment";
 import ContactUs from "./views/ContactUs/ContactUs";
+import SubscribeEmail from "./views/SubscribeEmail/subscribeEmail.js";
+import VideoCallRecords from "./views/VideoCallrecords/videoCallRecords";
+import Notifications from "./views/Notifications/notifications";
 import HomepagePerformer from "./views/HomePage/homepagePerformer";
+import Settings from "./views/Settings/index";
 import HomepageCelebs from "./views/HomePage/homepageCelebs";
+import WebSiteHomePage from "./views/WebSiteHomePage/index.js";
+import PaymentRequests from "./views/PaymentRequests/paymentRequests";
+import SendPayment from "./views/PaymentRequests/sendPayment";
+import AllTransactions from "./views/Transactions/allTransactions";
+import couponsTable from "./views/Coupons/coupon";
 import HomeIcon from '@material-ui/icons/Home';
+import CouponAdd from "./views/Coupons/Coupon_Add";
+import StaticPage from "./views/StaticPage/StaticPage.js";
 
 const dashboardRoutes = [
 
@@ -67,7 +80,7 @@ const dashboardRoutes = [
   // Funcars
   {
     path: "/funncars",
-    name: "Funncars",
+    name: "Celebrities",
     icon: Person,
     component: FuncarsList,
     layout: "/admin",
@@ -75,7 +88,7 @@ const dashboardRoutes = [
   },
   {
     path: "/Funncar_Edit/:Id",
-    name: "Edit Funcar",
+    name: "Edit Celebrity",
     icon: Person,
     component: FuncarEdit,
     layout: "/admin",
@@ -83,13 +96,13 @@ const dashboardRoutes = [
   },
   {
     path: "/funncar/:Id",
-    name: "Funncar Details",
+    name: "Celebrity Details",
     icon: Person,
     component: FuncarView,
     layout: "/admin",
     showInMenue: false
   },
-  
+
   // Performers
   {
     path: "/performers",
@@ -119,23 +132,25 @@ const dashboardRoutes = [
   // Configuration
   {
     path: "/configurations",
-    name: "Configurations",
+    name: "App Configurations",
     component: ConfigurationsList,
     layout: "/admin",
     showInMenue: true
   },
   {
-    path: "/Configuration_Edit/:Id",
+    path: "/configuration_Edit/:Id",
     name: "Edit Configuration",
     component: ConfigurationsAdd,
     layout: "/admin",
   },
   {
-    path: "/Configuration_Add",
+    path: "/configuration_Add",
     name: "",
     component: ConfigurationsAdd,
     layout: "/admin",
   },
+
+  // Bookings
   {
     path: "/bookings",
     name: "Bookings",
@@ -149,16 +164,77 @@ const dashboardRoutes = [
     component: Booking_View,
     layout: "/admin",
   },
+
+  // Dispute Bookings
+  {
+    path: "/dispute-bookings",
+    name: "Dispute Bookings",
+    component: DisputeBookingsList,
+    layout: "/admin",
+    showInMenue: true
+  },
+  {
+    path: "/dispute-booking/:Id",
+    name: "Send Booking Payment",
+    component: SendBookingPayment,
+    layout: "/admin",
+  },
+  {
+    path: "/call-records",
+    name: "Agora Video Call Records",
+    component: VideoCallRecords,
+    layout: "/admin",
+  },
   {
     path: "/contact-us",
-    name: "Contact Us Data",
+    name: "Contact Us Queries",
     component: ContactUs,
+    layout: "/admin",
+  },
+  // content
+  {
+    path: "/terms-conditions",
+    name: "Terms & Conditions",
+    component: StaticPage,
+    layout: "/admin",
+  },
+  {
+    path: "/privacy-policy",
+    name: "Privacy & Policy",
+    component: StaticPage,
+    layout: "/admin",
+  },
+
+  {
+    path: "/contact-email",
+    name: "Subscription",
+    component: SubscribeEmail,
+    layout: "/admin",
+  },
+  // {
+  //   path: "/settings",
+  //   name: "App Settings",
+  //   component: Settings,
+  //   layout: "/admin",
+  // },
+  {
+    path: "/notifications",
+    name: "Notifications",
+    component: Notifications,
     layout: "/admin",
   },
   {
     path: "/celebs-homepage",
     name: "Celebrities Home Page",
     component: HomepageCelebs,
+    icon: HomeIcon,
+    layout: "/admin",
+    showInMenue: true
+  },
+  {
+    path: "/website_homepage",
+    name: "WebSite Home Page",
+    component: WebSiteHomePage,
     icon: HomeIcon,
     layout: "/admin",
     showInMenue: true
@@ -171,8 +247,43 @@ const dashboardRoutes = [
     layout: "/admin",
     showInMenue: true
   },
-
-
+  {
+    path: "/transactions",
+    name: "Transactions",
+    component: AllTransactions,
+    layout: "/admin",
+  },
+  {
+    path: "/payment-requests",
+    name: "Payment Requests",
+    component: PaymentRequests,
+    layout: "/admin",
+  },
+  {
+    path: "/payment-request/:Id",
+    name: "Payment Request",
+    component: SendPayment,
+    layout: "/admin",
+  },
+  {
+    path: "/coupons",
+    name: "Coupons ",
+    component: couponsTable,
+    layout: "/admin",
+  },
+  {
+    path: "/add_coupon",
+    name: "Create Coupon",
+    component: CouponAdd,
+    layout: "/admin",
+  },
+  {
+    path: "/coupon/:Id",
+    name: "Edit Coupon",
+    component: CouponAdd,
+    layout: "/admin",
+  },
+  
 ];
 
 export default dashboardRoutes;

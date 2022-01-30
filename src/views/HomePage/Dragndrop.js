@@ -10,6 +10,8 @@ import Avatar from '@material-ui/core/Avatar';
 import { makeStyles } from "@material-ui/core/styles";
 import { BASE_URL } from '../../common/constants';
 import Rating from '@material-ui/lab/Rating';
+import { useHistory, Link } from 'react-router-dom'
+import { numberWithCommas } from "../../common/commonMethods"
 
 const useStyles = makeStyles((theme) => ({
     root: {
@@ -71,7 +73,10 @@ export default function DragNDrop(props) {
 
                                                 }
 
-                                                title={<><span>{containerItem?.funncar?.professionalName}</span><br/>
+                                                title={<>
+                                                {/* <Link  to={`/admin/booking`}> */}
+                                                <Link to={containerItem?.funncar?.role == 'funncar' ? `/admin/funncar/${containerItem?.funncar?._id}` : `/admin/performer/${containerItem?.funncar?._id}`}>
+                                                    <span className="funNcar-title">{containerItem?.funncar?.professionalName}</span></Link><br/>
                                                 <p className="m-0 p-0">{containerItem?.funncar?.mainCategory?.name}</p></>}
                                                 
                                                 // subheader={containerItem?.funncar?.mainCategory?.name}
@@ -81,7 +86,7 @@ export default function DragNDrop(props) {
                                             />
                                             <CardContent className="cardContent1">
                                                 <Typography className={classes.pos} style={{ float:'right', marginRight:20  }} color="textSecondary">
-                                                    Rs {containerItem?.funncar?.averageRate}
+                                                    {containerItem?.funncar?.currency} {numberWithCommas(containerItem?.funncar?.averageRate)}
                                                 </Typography>
                                             </CardContent>
                                         </Card>

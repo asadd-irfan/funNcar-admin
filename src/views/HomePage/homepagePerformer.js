@@ -154,8 +154,8 @@ export default function PerformerHomePages() {
              const selected = homePageData?.popularFunncars?.map((item, i) => {
  
                  return ({
-                     value: item.funncar._id,
-                     label: `${item.funncar.professionalName} - ${item.funncar.mainCategory.name}`,
+                     value: item.funncar?._id,
+                     label: `${item.funncar?.professionalName} - ${item.funncar?.mainCategory.name}`,
                  })
              })
              setSelectedFunncar(selected)

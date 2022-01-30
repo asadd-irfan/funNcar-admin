@@ -26,7 +26,9 @@ import DropDown from "../../components/DropdownRenderer"
 import { ConvertToCommaSplitArray, ProcessDataInArray } from "../../common/commonMethods"
 import ServicePricing from "../../components/ServicePricing"
 import GellaryLoader from "../../components/gellaryLoader"
+import CommissionRate from '../../components/CommissionRate/index';
 import AlertDialog from '../../components/Modals/AlertModal'
+
 
 const styles = {
     cardCategoryWhite: {
@@ -62,6 +64,7 @@ const useStyles = makeStyles(styles);
 export default function PerformerEdit() {
 
     // Hooks
+    const user = useSelector(state => state.auth.user);
     const classes = useStyles();
     const alert = useAlert();
     const dispatch = useDispatch();
@@ -70,7 +73,8 @@ export default function PerformerEdit() {
     const FilesInput = React.createRef();
     const GalleryFilesInput = React.createRef();
     const Store = useSelector(state => state);
-
+    const [userData, setUserData] = useState();
+    const PerformanceService = Store.auth?.appConfigs?.data?.services?.filter(item => item.key == 'Performance')
     // state
     const [isImageChanged, setIsImageChanged] = useState(false);
     const [filteredSubCategoriesList, setFilteredSubCategoriesList] = useState([]);
@@ -82,6 +86,7 @@ export default function PerformerEdit() {
     const [activeTab, setActiveTab] = useState('info_tab')
     const [pricingServices, setPricingServices] = useState([]);
     const [filteredPricingServices, setFilteredPricingServices] = useState([]);
+    const [currency, setCurrency] = useState()
 
     const [AlertModalProps, setAlertModalProps] = useState({
         open: false,
@@ -97,6 +102,8 @@ export default function PerformerEdit() {
         achievements: [],
         services: [],
         mngServices: [],
+        excludes: "",
+        includes: "",
         averageRate: "",
         firstName: "",
         lastName: "",
@@ -118,7 +125,7 @@ export default function PerformerEdit() {
 
     const handleGelleryInputChange = (e) => {
         if (e.target.files.length > 0) {
-            let element= e.target
+            let element = e.target
             let formData = new FormData();
             let ins = e.target.files.length;
             for (let x = 0; x < ins; x++) {
@@ -147,6 +154,7 @@ export default function PerformerEdit() {
             });
         }
     }
+
     const handleFormInputChange = (e) => {
         const fieldId = e.currentTarget.id
         setFormInputs({
@@ -176,22 +184,22 @@ export default function PerformerEdit() {
         }
     }
     const validateForm = () => {
-        if (!FormInputs.gender) {
-            alert.error("Gender is required")
-            return false
-        }
-        if (!FormInputs.country) {
-            alert.error("Country is required")
-            return false
-        }
-        if (!FormInputs.city) {
-            alert.error("City is required")
-            return false
-        }
-        if (FormInputs.averageRate === 0) {
-            alert.error("Average rate is required")
-            return false
-        }
+        // if (!FormInputs.gender) {
+        //     alert.error("Gender is required")
+        //     return false
+        // }
+        // if (!FormInputs.country) {
+        //     alert.error("Country is required")
+        //     return false
+        // }
+        // if (!FormInputs.city) {
+        //     alert.error("City is required")
+        //     return false
+        // }
+        // if (FormInputs.averageRate === 0) {
+        //     alert.error("Average rate is required")
+        //     return false
+        // }
         if (!FormInputs.mainCategory) {
             alert.error("Main catagory is required")
             return false
@@ -204,10 +212,10 @@ export default function PerformerEdit() {
             alert.error("Categories max limit is 3")
             return false
         }
-        if (FormInputs.subCategories.length === 0) {
-            alert.error("Please select atleast one sub category")
-            return false
-        }
+        // if (FormInputs.subCategories.length === 0) {
+        //     alert.error("Please select atleast one sub category")
+        //     return false
+        // }
         if (FormInputs.subCategories.length > 3) {
             alert.error("Sub Categories max limit is 3")
             return false
@@ -220,10 +228,31 @@ export default function PerformerEdit() {
             alert.error("Please select atleast one MNG service")
             return false
         }
-        if (FormInputs.achievements.length === 0) {
-            alert.error("Please add atleast one achievement")
-            return false
+        let error = false;
+        if (filteredPricingServices.length) {
+            filteredPricingServices.forEach(item => {
+                if(item?.serviceType?.key == "Performance - Normal Rate Card" ||
+                item?.serviceType?.key == "Performance - Special Rate Card"
+              ) {
+                  for (let i = 0; i< item?.serviceDetails.length; i++) {
+                    let el = item?.serviceDetails[i];
+                    if(el?.price != 0 && el?.price < 5000) {
+                        alert.error("Price must be greater than 5000.");
+                        error =true;
+                        break;
+                    } 
+                  }
+              }
+            })
         }
+        if (error) {
+            return false;
+        }
+      
+        // if (FormInputs.achievements.length === 0) {
+        //     alert.error("Please add atleast one achievement")
+        //     return false
+        // }
         return true
     }
     const handleFormSubmit = (e) => {
@@ -231,55 +260,58 @@ export default function PerformerEdit() {
         e.preventDefault();
         if (!validateForm()) return
 
-        let param = {
-            averageRate: FormInputs.averageRate,
-            firstName: FormInputs.firstName,
-            lastName: FormInputs.lastName,
-            professionalName: FormInputs.professionalName,
-            email: FormInputs.email,
-            phone: FormInputs.phone,
-            gender: FormInputs.gender,
-            country: FormInputs.country,
-            city: FormInputs.city,
-            bio: FormInputs.bio,
-            notes: FormInputs.notes,
-            categories: FormInputs.categories,
-            subCategories: FormInputs.subCategories,
-            services: FormInputs.services,
-            mngServices: FormInputs.mngServices,
-            achievements: FormInputs.achievements,
-            servicesPricing: filteredPricingServices,
-            mainCategory: FormInputs.mainCategory,
-            isPopular: FormInputs.isPopular,
-        }
+            let param = {
+                averageRate: FormInputs.averageRate,
+                firstName: FormInputs.firstName,
+                lastName: FormInputs.lastName,
+                includes: FormInputs.includes,
+                excludes: FormInputs.excludes,
+                professionalName: FormInputs.professionalName,
+                email: FormInputs.email,
+                phone: FormInputs.phone,
+                gender: FormInputs.gender,
+                country: FormInputs.country,
+                city: FormInputs.city,
+                bio: FormInputs.bio,
+                notes: FormInputs.notes,
+                categories: FormInputs.categories,
+                subCategories: FormInputs.subCategories,
+                services: FormInputs.services,
+                mngServices: FormInputs.mngServices,
+                achievements: FormInputs.achievements,
+                servicesPricing: filteredPricingServices,
+                mainCategory: FormInputs.mainCategory,
+                isPopular: FormInputs.isPopular,
+            }
 
-        dispatch({ type: UPDATE_LOADING, payload: true });
-        updateUser(Id, param).then(result => {
-            dispatch({ type: UPDATE_LOADING, payload: false });
-            if (result.data.status === true) {
-                alert.success(APP_ERROR_MSGS.SaveMsg)
-            }
-            else {
-                alert.error(result.data.message ? result.data.message : APP_ERROR_MSGS.StandardErrorMsg)
-            }
-        }).catch(error => {
-            dispatch({ type: UPDATE_LOADING, payload: false });
-            alert.error(error?.response?.data?.error ? error?.response?.data?.error : APP_ERROR_MSGS.StandardErrorMsg)
-        });
+            dispatch({ type: UPDATE_LOADING, payload: true });
+            updateUser(Id, param).then(result => {
+                dispatch({ type: UPDATE_LOADING, payload: false });
+                if (result.data.status === true) {
+                    alert.success(APP_ERROR_MSGS.SaveMsg)
+                }
+                else {
+                    alert.error(result.data.message ? result.data.message : APP_ERROR_MSGS.StandardErrorMsg)
+                }
+            }).catch(error => {
+                dispatch({ type: UPDATE_LOADING, payload: false });
+                alert.error(error?.response?.data?.error ? error?.response?.data?.error : APP_ERROR_MSGS.StandardErrorMsg)
+            });
+        
     }
     const filterSubCategories = (value) => {
         // filter list
         let allSubCategoriesList = Store.auth?.appConfigs?.data?.subCategories
-        let selectedCategories = ConvertToCommaSplitArray(value, "id")
+        let selectedCategories = ConvertToCommaSplitArray(value, "_id")
         let filteredList = allSubCategoriesList.filter(function (obj) {
             return selectedCategories.indexOf(obj.isBelongTo) > -1
         });
 
         // filter selected values
         let selected = FormInputs.subCategories
-        let filteredListIdArr = ConvertToCommaSplitArray(filteredList, "id")
+        let filteredListIdArr = ConvertToCommaSplitArray(filteredList, "_id")
         let filteredSelected = selected.filter(function (obj) {
-            return filteredListIdArr.indexOf(obj.id) > -1
+            return filteredListIdArr.indexOf(obj._id) > -1
         });
         setFilteredSubCategoriesList(filteredList)
         setFormInputs({ ...FormInputs, subCategories: filteredSelected })
@@ -297,18 +329,23 @@ export default function PerformerEdit() {
         if (value.length === 0) return setFilteredPricingServices([])
 
         // Filter dummy pricing array 
-        let selectedServices = ConvertToCommaSplitArray(value, "id")
+        let selectedServices = ConvertToCommaSplitArray(value, "_id")
         let filteredList = pricingServices.filter(function (obj) {
-            return selectedServices.indexOf(obj?.serviceType?.id) > -1
+
+            if (selectedServices.indexOf(obj?.serviceType?._id) > -1) {
+                return selectedServices.indexOf(obj?.serviceType?._id) > -1
+            } else {
+                return selectedServices.indexOf(obj?.serviceType?.isBelongTo) > -1
+            }
         });
 
         // Populate filtered dummy array
         let tempProcessed = FormInputs.processedServicePriceing
         for (let i in filteredList) {
-            if (tempProcessed[filteredList[i].serviceType?.id]) {
+            if (tempProcessed[filteredList[i].serviceType?._id]) {
                 for (let j in filteredList[i].serviceDetails) {
-                    if (tempProcessed[filteredList[i].serviceType?.id].processedPricing[filteredList[i].serviceDetails[j].serviceName?.id]) {
-                        filteredList[i].serviceDetails[j].price = tempProcessed[filteredList[i].serviceType?.id].processedPricing[filteredList[i].serviceDetails[j].serviceName?.id].price
+                    if (tempProcessed[filteredList[i].serviceType?._id].processedPricing[filteredList[i].serviceDetails[j].serviceName?._id]) {
+                        filteredList[i].serviceDetails[j].price = tempProcessed[filteredList[i].serviceType?._id].processedPricing[filteredList[i].serviceDetails[j].serviceName?._id].price
                     }
                 }
             }
@@ -346,17 +383,18 @@ export default function PerformerEdit() {
         setFormInputs({ ...FormInputs, achievements: arr })
     }
     const loadData = (data) => {
-        let { servicesPricing, categories, subCategories, achievements, services, mngServices, averageRate, firstName, lastName, professionalName, gender, country, city, bio, notes, email, phone, profileImage, mainCategory, isPopular, gallery,
+        let { includes,excludes, servicesPricing, currency, categories, subCategories, achievements, services, mngServices, averageRate, firstName, lastName, professionalName, gender, country, city, bio, notes, email, phone, profileImage, mainCategory, isPopular, gallery,
         } = data
+        setCurrency(currency)
 
         let tempPricing = [...servicesPricing]
         let processedServicePriceing = []
         for (let i in tempPricing) {
             tempPricing[i].processedPricing = []
             for (let j in tempPricing[i].serviceDetails) {
-                tempPricing[i].processedPricing[tempPricing[i].serviceDetails[j].serviceName?.id] = tempPricing[i].serviceDetails[j]
+                tempPricing[i].processedPricing[tempPricing[i].serviceDetails[j].serviceName?._id] = tempPricing[i].serviceDetails[j]
             }
-            processedServicePriceing[tempPricing[i].serviceType?.id] = tempPricing[i]
+            processedServicePriceing[tempPricing[i].serviceType?._id] = tempPricing[i]
         }
 
         setFormInputs({
@@ -366,6 +404,8 @@ export default function PerformerEdit() {
             email,
             phone,
             profileImage,
+            includes,
+            excludes,
             categories,
             subCategories,
             achievements,
@@ -380,7 +420,7 @@ export default function PerformerEdit() {
             city,
             bio,
             notes,
-            mainCategory: mainCategory ? mainCategory?.id : "",
+            mainCategory: mainCategory ? mainCategory?._id : "",
             isPopular,
             gallery,
         })
@@ -424,6 +464,7 @@ export default function PerformerEdit() {
             dispatch({ type: UPDATE_LOADING, payload: false });
             if (result.data.status === true) {
                 loadData(result.data.data)
+                setUserData(result.data.data)
             }
             else {
                 alert.error(result.data.message ? result.data.message : APP_ERROR_MSGS.StandardErrorMsg)
@@ -483,6 +524,30 @@ export default function PerformerEdit() {
         });
     }
 
+    const updateCommissionRates = (body) => {
+        if (body.serviceCharges.status == true) {
+            body.commissionRate.forEach(item => {
+                if ((parseInt(item.percentage) < 1 || parseInt(item.percentage) > 100))
+                    return alert.error("Percentage must be less than 100 and greater than 0")
+            })
+        }
+
+        dispatch({ type: UPDATE_LOADING, payload: true });
+        updateUser(Id, body).then(result => {
+            dispatch({ type: UPDATE_LOADING, payload: false });
+            if (result.data.status === true) {
+                alert.success(APP_ERROR_MSGS.SaveMsg)
+                getUserDetails()
+            }
+            else {
+                alert.error(result.data.message ? result.data.message : APP_ERROR_MSGS.StandardErrorMsg)
+            }
+        }).catch(error => {
+            dispatch({ type: UPDATE_LOADING, payload: false });
+            alert.error(error?.response?.data?.error ? error?.response?.data?.error : APP_ERROR_MSGS.StandardErrorMsg)
+        });
+    }
+
     useEffect(() => {
 
         window.addEventListener('keydown', function (event) {
@@ -521,9 +586,29 @@ export default function PerformerEdit() {
         filterServicePricing(FormInputs.services)
     }, [FormInputs.services]);
 
+    const goBack = () =>{
+        let redirectState = history.location.state?.backRedirection ? history.location.state?.backRedirection : null
+        if(redirectState){
+          history.push({
+            pathname: redirectState.redirectToURL,
+            search: redirectState.search,
+            state: { backRedirection: redirectState.data }
+          })
+        } else {
+          history.push({
+            pathname: "/admin/performers",
+            state: { backRedirection: null }
+          })
+        }
+    }
+
     return (
         <>
             <AlertDialog  {...AlertModalProps} setOpen={((resp) => { setAlertModalProps({ ...AlertModalProps, open: resp }) })} />
+
+            <Button onClick={goBack} type="submit" color="primary">
+                Back
+            </Button>
 
             <ul className="nav nav-tabs">
                 <li onClick={() => setActiveTab('info_tab')} className={activeTab === "info_tab" ? "active" : ""}><a>Info</a></li>
@@ -561,13 +646,13 @@ export default function PerformerEdit() {
 
                                         <GridContainer>
 
-                                            <GridItem xs={12} sm={12} md={4}>
+                                           {user.isSuperAdmin &&<> <GridItem xs={12} sm={12} md={4}>
                                                 <CustomInput labelText="Email" id="email" inputProps={{ type: "email", value: FormInputs.email, onChange: handleFormInputChange }} formControlProps={{ fullWidth: true, required: true }} />
                                             </GridItem>
 
                                             <GridItem xs={12} sm={12} md={4}>
                                                 <CustomInput labelText="Phone" id="phone" inputProps={{ type: "text", value: FormInputs.phone, onChange: handleFormInputChange }} formControlProps={{ fullWidth: true, required: true }} />
-                                            </GridItem>
+                                            </GridItem></>}
 
                                             <GridItem xs={12} sm={12} md={4} style={{ paddingTop: "20px" }}>
                                                 <DropDown
@@ -587,7 +672,7 @@ export default function PerformerEdit() {
                                                     AddNew={() => { }}
                                                     clearable={true}
                                                     placeholder="Select"
-                                                    inputLabel="Gender *"
+                                                    inputLabel="Gender"
                                                 />
                                             </GridItem>
 
@@ -616,7 +701,7 @@ export default function PerformerEdit() {
                                                     AddNew={() => { }}
                                                     clearable={true}
                                                     placeholder="Select"
-                                                    inputLabel="Country *"
+                                                    inputLabel="Country"
                                                 />
                                             </GridItem>
 
@@ -641,7 +726,7 @@ export default function PerformerEdit() {
                                                     AddNew={() => { }}
                                                     clearable={true}
                                                     placeholder="Select"
-                                                    inputLabel="City *"
+                                                    inputLabel="City"
                                                 />
                                             </GridItem>
                                         </GridContainer>
@@ -649,12 +734,12 @@ export default function PerformerEdit() {
                                         <GridContainer>
 
                                             <GridItem xs={12} sm={12} md={4}>
-                                                <CustomInput labelText="AVG Rate" id="averageRate" inputProps={{ type: "number", value: FormInputs.averageRate, onChange: handleFormInputChange }} formControlProps={{ fullWidth: true, required: true, }} />
+                                                <CustomInput labelText="Starting from" id="averageRate" inputProps={{ type: "number", value: FormInputs.averageRate, onChange: handleFormInputChange }} formControlProps={{ fullWidth: true }} />
                                             </GridItem>
 
-                                            {(FormInputs.isPopular == true || FormInputs.isPopular == false) &&   <GridItem className="flex_end_checbox" xs={12} sm={12} md={4}>
+                                            {(FormInputs.isPopular == true || FormInputs.isPopular == false) && <GridItem className="flex_end_checbox" xs={12} sm={12} md={4}>
                                                 <label className="checkbox-container">Popular
-                                            <input type="checkbox" defaultChecked={FormInputs.isPopular == true ? true : false} onClick={() => setFormInputs({ ...FormInputs, isPopular: !FormInputs.isPopular })} />
+                                                    <input type="checkbox" defaultChecked={FormInputs.isPopular == true ? true : false} onClick={() => setFormInputs({ ...FormInputs, isPopular: !FormInputs.isPopular })} />
                                                     <span className="checkmark"></span>
                                                 </label>
                                             </GridItem>}
@@ -664,11 +749,17 @@ export default function PerformerEdit() {
                                         <GridContainer>
 
                                             <GridItem xs={12} sm={12} md={12}>
-                                                <CustomInput labelText="Bio" id="bio" formControlProps={{ fullWidth: true, required: true }} inputProps={{ multiline: true, rows: 5, value: FormInputs.bio, onChange: handleFormInputChange }} />
+                                                <CustomInput labelText="Bio" id="bio" formControlProps={{ fullWidth: true }} inputProps={{ multiline: true, rows: 5, value: FormInputs.bio, onChange: handleFormInputChange }} />
                                             </GridItem>
 
                                             <GridItem xs={12} sm={12} md={12}>
-                                                <CustomInput labelText="Notes" id="notes" formControlProps={{ fullWidth: true, required: true }} inputProps={{ multiline: true, rows: 5, value: FormInputs.notes, onChange: handleFormInputChange }} />
+                                                <CustomInput labelText="Notes" id="notes" formControlProps={{ fullWidth: true }} inputProps={{ multiline: true, rows: 5, value: FormInputs.notes, onChange: handleFormInputChange }} />
+                                            </GridItem>
+                                            <GridItem xs={12} sm={12} md={12}>
+                                                <CustomInput labelText="Includes" id="includes" formControlProps={{ fullWidth: true }} inputProps={{ multiline: true, rows: 5, value: FormInputs.includes, onChange: handleFormInputChange }} />
+                                            </GridItem>
+                                            <GridItem xs={12} sm={12} md={12}>
+                                                <CustomInput labelText="Excludes" id="excludes" formControlProps={{ fullWidth: true }} inputProps={{ multiline: true, rows: 5, value: FormInputs.excludes, onChange: handleFormInputChange }} />
                                             </GridItem>
 
                                         </GridContainer>
@@ -688,7 +779,7 @@ export default function PerformerEdit() {
                                                     loading={false}
                                                     searchBy="name"
                                                     labelField="name"
-                                                    valueField="id"
+                                                    valueField="_id"
                                                     AddNew={() => { }}
                                                     clearable={true}
                                                     placeholder="Select"
@@ -712,7 +803,7 @@ export default function PerformerEdit() {
                                                     loading={false}
                                                     searchBy="name"
                                                     labelField="name"
-                                                    valueField="id"
+                                                    valueField="_id"
                                                     AddNew={() => { }}
                                                     clearable={true}
                                                     placeholder="Select"
@@ -736,11 +827,11 @@ export default function PerformerEdit() {
                                                     loading={false}
                                                     searchBy="name"
                                                     labelField="name"
-                                                    valueField="id"
+                                                    valueField="_id"
                                                     AddNew={() => { }}
                                                     clearable={true}
                                                     placeholder="Select"
-                                                    inputLabel="Sub Categories *"
+                                                    inputLabel="Sub Categories"
                                                 />
                                             </GridItem>
                                         </GridContainer>
@@ -755,12 +846,12 @@ export default function PerformerEdit() {
                                                     create={false}
                                                     onChange={HandleAutoSuggestValChange}
                                                     Type="services"
-                                                    options={Store.auth?.appConfigs?.data?.services}
+                                                    options={PerformanceService}
                                                     val={FormInputs.services}
                                                     loading={false}
                                                     searchBy="name"
                                                     labelField="name"
-                                                    valueField="id"
+                                                    valueField="_id"
                                                     AddNew={() => { }}
                                                     clearable={true}
                                                     placeholder="Select"
@@ -784,7 +875,7 @@ export default function PerformerEdit() {
                                                     loading={false}
                                                     searchBy="name"
                                                     labelField="name"
-                                                    valueField="id"
+                                                    valueField="_id"
                                                     AddNew={() => { }}
                                                     clearable={true}
                                                     placeholder="Select"
@@ -810,6 +901,8 @@ export default function PerformerEdit() {
                                             </GridItem>
                                         </GridContainer>
 
+
+
                                     </CardBody>
                                 </Card>
 
@@ -819,7 +912,7 @@ export default function PerformerEdit() {
                                         <h4 className={classes.cardTitleWhite}>Service Pricing</h4>
                                     </CardHeader>
                                     <CardBody>
-                                        <ServicePricing list={filteredPricingServices} onChange={handlePricingValChange} />
+                                        <ServicePricing currency={currency} list={filteredPricingServices} onChange={handlePricingValChange} />
                                     </CardBody>
                                     <CardFooter>
                                         <Button type="submit" color="primary">SAVE</Button>
@@ -839,6 +932,11 @@ export default function PerformerEdit() {
                                 </CardBody>
                             </Card>
                         </GridItem>
+
+                        <GridItem xs={12} sm={12} md={12}>
+                            <CommissionRate commissionRate={userData?.commissionRate} serviceCharges={userData?.serviceCharges} updateCommissionRates={updateCommissionRates} />
+                        </GridItem>
+                        
                     </GridContainer>
                 </div>
             }

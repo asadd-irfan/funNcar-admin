@@ -49,9 +49,9 @@ const styles = {
     root: {
         minWidth: 275,
         paddingTop: 15,
-        marginTop: 15,
+        marginTop: 5,
         marginBottom: 5,
-        paddingBottom: 5,
+        // paddingBottom: 5,
     },
    
     pos: {
@@ -134,8 +134,8 @@ export default function ReviewsList({Id, AverageRating}) {
     return (<>
               <AlertDialog  {...AlertModalProps} setOpen={((resp)=>{setAlertModalProps({...AlertModalProps,open:resp})})}/>
         <GridItem xs={12} sm={12} md={12}>
-            <Card1>
-                <CardHeader1 color="primary" className="d-flex" style={ {justifyContent: 'space-between'}}> 
+            <Card1 style={{height:700, overflow: 'auto'}}>
+                <CardHeader1 color="primary" className="d-flex" style={ {justifyContent: 'space-between', marginTop:20}}> 
                     <h4 className={classes.cardTitleWhite}>Ratings and Reviews </h4>
                     <h4 className={classes.cardTitleWhite}>Average Rating: {AverageRating} </h4>
                 </CardHeader1>
@@ -146,25 +146,25 @@ export default function ReviewsList({Id, AverageRating}) {
                             <Card className={classes.root} key={i}>
                                 <CardHeader className="cardHeader"
                                     avatar={
-                                        <Avatar alt="fan" src={`${BASE_URL}/${review.user.profileImage}`} />
+                                        <Avatar alt="fan" src={`${BASE_URL}/${review?.user?.profileImage}`} />
                                     }
                                     action={<>
-                                        {review.comments && <IconButton className="mx-3" aria-label="settings" onClick={(()=>{onDelete(review._id)})}>
+                                        {review?.comments && <IconButton className="mx-3" aria-label="settings" onClick={(()=>{onDelete(review?._id)})}>
                                             <i className="fa fa-trash" aria-hidden="true"></i>
                                          </IconButton>}
 
                                          </>}
-                                    title={review.user.fullName ? review.user.fullName : review.user.professionalName}
+                                    title={review?.user?.fullName ? review?.user?.fullName : review?.user?.professionalName}
                                     subheader={<>
-                                        {/* <span>{review.funncar.professionalName}</span> */}
-                                        <Rating name="read-only" precision={0.5} value={review.rating} size="small" readOnly />
+                                        {/* <span>{review?.funncar.professionalName}</span> */}
+                                        <Rating name="read-only" precision={0.5} value={review?.rating} size="small" readOnly />
                                     </>}
 
                                 />
                                 <CardContent className="cardContent">
-                                    <Typography className={classes.pos} color="textSecondary">
-                                        {review.comments}
-                                    </Typography>
+                                    {/* <Typography className={classes.pos} color="textSecondary"> */}
+                                        {review?.comments}
+                                    {/* </Typography> */}
                                 </CardContent>
                             </Card>
                         )
